@@ -48,10 +48,16 @@ const PORT = Number(process.env.PORT) || 3000;
 const API_VERSION = 'v0';
 const ROUTE_PATH = `/${API_VERSION}/combine`;
 
-function logRequest(method, url, status) {
+function formatDurationNs(durationNs) {
+  return Number(durationNs) / 1e6;
+}
+
+function logRequest(method, url, status, durationMs) {
   const timestamp = new Date().toISOString();
   // eslint-disable-next-line no-console
-  console.log(`[${timestamp}] ${method} ${url} -> ${status}`);
+  console.log(
+    `[${timestamp}] ${method} ${url} -> ${status} ${durationMs.toFixed(2)}ms`,
+  );
 }
 
 async function parseRequestBody(req) {
@@ -166,7 +172,6 @@ function handleError(error, req, res) {
     console.error(error);
   }
   sendJson(res, status, { error: message });
-  logRequest(req.method, req.url, status);
 }
 
 async function routeRequest(req, res) {
@@ -176,7 +181,6 @@ async function routeRequest(req, res) {
     const body = await parseRequestBody(req);
     const response = await handleCombine(body);
     sendJson(res, 200, response);
-    logRequest(req.method, req.url, 200);
     return;
   }
 
@@ -184,6 +188,14 @@ async function routeRequest(req, res) {
 }
 
 const server = http.createServer(async (req, res) => {
+  const start = process.hrtime.bigint();
+  res.on('finish', () => {
+    const end = process.hrtime.bigint();
+    const durationMs = formatDurationNs(end - start);
+    const endpoint = new URL(req.url, 'http://localhost').pathname;
+    logRequest(req.method, endpoint, res.statusCode, durationMs);
+  });
+
   try {
     await routeRequest(req, res);
   } catch (error) {
