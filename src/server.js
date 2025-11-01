@@ -4,7 +4,8 @@ const http = require('http');
 const { z } = require('./validation/zod');
 const { convertInput } = require('./converters');
 const { deepMerge, clone } = require('./utils/deepMerge');
-const { applyOutputFormat } = require('./utils/transform');
+const { applyOutputFormat, MAX_OUTPUT_BYTES } = require('./utils/transform');
+const { isLikelyText } = require('./utils/validateEncoding');
 
 loadEnv();
 
@@ -60,29 +61,65 @@ function logRequest(method, url, status, durationMs) {
   );
 }
 
+const MAX_PAYLOAD_SIZE = 5 * 1024 * 1024;
+
 async function parseRequestBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
+    let totalSize = 0;
+    let completed = false;
+
+    const finish = (error, result) => {
+      if (completed) {
+        return;
+      }
+      completed = true;
+      if (error) {
+        reject(error);
+      } else {
+        resolve(result);
+      }
+    };
+
     req.on('data', (chunk) => {
+      if (completed) {
+        return;
+      }
+
+      totalSize += chunk.length;
+      if (totalSize > MAX_PAYLOAD_SIZE) {
+        const payloadError = new Error('Payload too large');
+        payloadError.statusCode = 413;
+        req.destroy(payloadError);
+        finish(payloadError);
+        return;
+      }
+
       chunks.push(chunk);
     });
+
     req.on('end', () => {
+      if (completed) {
+        return;
+      }
+
       const raw = Buffer.concat(chunks).toString('utf8');
       if (!raw) {
-        resolve({});
+        finish(null, {});
         return;
       }
       try {
         const parsed = JSON.parse(raw);
-        resolve(parsed);
+        finish(null, parsed);
       } catch (error) {
         const parseError = new Error('Invalid JSON body');
         parseError.statusCode = 400;
-        reject(parseError);
+        finish(parseError);
       }
     });
+
     req.on('error', (error) => {
-      reject(error);
+      finish(error);
     });
   });
 }
@@ -131,6 +168,13 @@ async function handleCombine(body) {
   let merged;
   for (let index = 0; index < inputs.length; index += 1) {
     const input = inputs[index];
+
+    if (!isLikelyText(input.data)) {
+      // eslint-disable-next-line no-console
+      console.warn('[Unifio] Rejected input with invalid encoding or binary data.');
+      throw badRequest('Invalid input encoding — only UTF-8 text is supported');
+    }
+
     let converted;
     try {
       converted = await convertInput(input);
@@ -145,7 +189,14 @@ async function handleCombine(body) {
   }
 
   const finalData = outputFormat ? applyOutputFormat(outputFormat, merged) : merged;
-  const base64 = Buffer.from(JSON.stringify(finalData)).toString('base64');
+  const serialized = JSON.stringify(finalData);
+  if (Buffer.byteLength(serialized, 'utf8') > MAX_OUTPUT_BYTES) {
+    const error = new Error('Output too large. Try narrowing your query or reducing array size.');
+    error.statusCode = 413;
+    throw error;
+  }
+
+  const base64 = Buffer.from(serialized).toString('base64');
   return { result: base64 };
 }
 

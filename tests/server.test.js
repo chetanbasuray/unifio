@@ -108,6 +108,31 @@ describe('POST /v0/combine', () => {
     expect(body).toEqual({ error: 'Invalid input' });
   });
 
+  test('accepts payloads within the size limit', async () => {
+    const smallPayload = {
+      inputs: [
+        { type: 'json', data: JSON.stringify({ message: 'hello' }) },
+      ],
+    };
+
+    const { response, body } = await sendRequest(port, smallPayload);
+
+    expect(response.status).toBe(200);
+    expect(typeof body.result).toBe('string');
+  });
+
+  test('rejects payloads larger than 5MB', async () => {
+    const largeData = 'a'.repeat(5 * 1024 * 1024 + 1);
+    const payload = {
+      inputs: [{ type: 'json', data: largeData }],
+    };
+
+    const { response, body } = await sendRequest(port, payload);
+
+    expect(response.status).toBe(413);
+    expect(body).toEqual({ error: 'Payload too large' });
+  });
+
   test('hides internal error details from clients', async () => {
     const payload = {
       inputs: [{ type: 'json', data: '{"user":{"name":"Mallory"}}' }],
@@ -122,5 +147,57 @@ describe('POST /v0/combine', () => {
 
     expect(response.status).toBe(500);
     expect(body).toEqual({ error: 'Internal error' });
+  });
+
+  test('returns 413 when the combined output exceeds the size limit', async () => {
+    const largeValue = 'a'.repeat(1_100_000);
+    const payload = {
+      inputs: [{ type: 'json', data: JSON.stringify({ big: largeValue }) }],
+    };
+
+    const { response, body } = await sendRequest(port, payload);
+
+    expect(response.status).toBe(413);
+    expect(body).toEqual({
+      error: 'Output too large. Try narrowing your query or reducing array size.',
+    });
+  });
+
+  test('accepts UTF-8 text payloads', async () => {
+    const payload = {
+      inputs: [{ type: 'json', data: JSON.stringify({ message: 'hello world' }) }],
+    };
+
+    const { response } = await sendRequest(port, payload);
+
+    expect(response.status).toBe(200);
+  });
+
+  test('rejects inputs containing null bytes', async () => {
+    const payload = {
+      inputs: [{ type: 'json', data: 'hello\u0000world' }],
+    };
+
+    const { response, body } = await sendRequest(port, payload);
+
+    expect(response.status).toBe(400);
+    expect(body).toEqual({
+      error: 'Invalid input encoding — only UTF-8 text is supported',
+    });
+  });
+
+  test('rejects inputs with excessive non-printable characters', async () => {
+    const binaryFragment = '\u0007'.repeat(20);
+    const textFragment = 'a'.repeat(180);
+    const payload = {
+      inputs: [{ type: 'json', data: binaryFragment + textFragment }],
+    };
+
+    const { response, body } = await sendRequest(port, payload);
+
+    expect(response.status).toBe(400);
+    expect(body).toEqual({
+      error: 'Invalid input encoding — only UTF-8 text is supported',
+    });
   });
 });
