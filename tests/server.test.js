@@ -13,6 +13,29 @@ async function sendRequest(port, payload) {
   return { response, body };
 }
 
+describe('GET /', () => {
+  let port;
+
+  beforeEach(async () => {
+    const serverInstance = await start(0);
+    port = serverInstance.address().port;
+  });
+
+  afterEach(async () => {
+    await stop();
+  });
+
+  test('returns the Unifio landing page', async () => {
+    const response = await fetch(`http://127.0.0.1:${port}/`);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('text/html');
+    expect(body).toContain('Unifio Data Fusion API');
+    expect(body).toContain('Read the API Guide');
+  });
+});
+
 describe('POST /v0/combine', () => {
   let port;
 
