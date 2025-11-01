@@ -5,6 +5,7 @@ const { z } = require('./validation/zod');
 const { convertInput } = require('./converters');
 const { deepMerge, clone } = require('./utils/deepMerge');
 const { applyOutputFormat, MAX_OUTPUT_BYTES } = require('./utils/transform');
+const { isLikelyText } = require('./utils/validateEncoding');
 
 loadEnv();
 
