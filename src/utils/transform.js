@@ -1,21 +1,35 @@
 const { evaluateJsonPath } = require('./jsonPath');
 const { clone } = require('./deepMerge');
 
+function safeEvaluateJsonPath(data, path) {
+  try {
+    return evaluateJsonPath(data, path);
+  } catch (error) {
+    return [];
+  }
+}
+
+function normalizeValue(value) {
+  if (typeof value === 'object' && value !== null) {
+    return clone(value);
+  }
+  return value;
+}
+
 function applyOutputFormat(format, data) {
   if (format === null || format === undefined) {
     return format;
   }
 
   if (typeof format === 'string') {
-    const results = evaluateJsonPath(data, format);
+    const results = safeEvaluateJsonPath(data, format);
     if (results.length === 0) {
       return null;
     }
     if (results.length === 1) {
-      const value = results[0];
-      return typeof value === 'object' && value !== null ? clone(value) : value;
+      return normalizeValue(results[0]);
     }
-    return results.map((value) => (typeof value === 'object' && value !== null ? clone(value) : value));
+    return results.map((value) => normalizeValue(value));
   }
 
   if (Array.isArray(format)) {
