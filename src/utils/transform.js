@@ -10,28 +10,24 @@ function createOutputMeta() {
     truncated: false,
     truncatedFields: new Set(),
     maxDepthReached: false,
+    outputTruncated: false,
   };
 }
 
 function formatOutputMeta(meta) {
-  if (!meta) {
-    return {
-      truncated: false,
-      truncatedFields: [],
-      maxDepthReached: false,
-    };
-  }
-
-  const fieldsSource = meta.truncatedFields || [];
+  const tracker = meta || createOutputMeta();
+  const fieldsSource = tracker.truncatedFields || [];
   const fields =
     typeof fieldsSource.values === 'function'
       ? Array.from(fieldsSource.values())
       : Array.from(fieldsSource);
 
   return {
-    truncated: Boolean(meta.truncated),
+    truncated: Boolean(tracker.truncated),
     truncatedFields: fields,
-    maxDepthReached: Boolean(meta.maxDepthReached),
+    maxDepthReached: Boolean(tracker.maxDepthReached),
+    outputTruncated: Boolean(tracker.outputTruncated),
+    timestamp: tracker.timestamp ? String(tracker.timestamp) : undefined,
   };
 }
 

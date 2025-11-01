@@ -87,6 +87,8 @@ describe('applyOutputFormat', () => {
     expect(result).toEqual(expected);
     const responseMeta = formatOutputMeta(metaTracker);
     expect(responseMeta.maxDepthReached).toBe(true);
+    expect(responseMeta.outputTruncated).toBe(false);
+    expect(responseMeta.timestamp).toBeUndefined();
   });
 
   test('handles nested schemas within the recursion depth limit', () => {
@@ -142,6 +144,7 @@ describe('applyOutputFormat', () => {
         truncated: true,
         truncatedFields: ['limited'],
         maxDepthReached: false,
+        outputTruncated: false,
       });
     } finally {
       warnSpy.mockRestore();

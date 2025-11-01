@@ -199,6 +199,13 @@ async function handleCombine(body) {
     : merged;
   const serialized = JSON.stringify(finalData);
   const responseMeta = formatOutputMeta(outputMetaTracker);
+  if (!Array.isArray(responseMeta.truncatedFields)) {
+    responseMeta.truncatedFields = [];
+  }
+  responseMeta.truncated = Boolean(responseMeta.truncated);
+  if (!responseMeta.truncated && responseMeta.truncatedFields.length > 0) {
+    responseMeta.truncated = true;
+  }
   const serializedLength = Buffer.byteLength(serialized, 'utf8');
   if (serializedLength > MAX_OUTPUT_BYTES) {
     responseMeta.outputTruncated = true;

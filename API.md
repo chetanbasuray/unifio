@@ -45,10 +45,17 @@ Merges and optionally transforms supplied data snippets.
 #### Response
 ```json
 {
-  "result": "base64EncodedJson"
+  "result": "base64EncodedJson",
+  "meta": {
+    "truncated": false,
+    "truncatedFields": [],
+    "maxDepthReached": false,
+    "outputTruncated": false,
+    "timestamp": "2025-11-01T12:34:56.000Z"
+  }
 }
 ```
-Decoding `result` yields the merged JSON object or the transformed structure when `output_format` is provided.
+Decoding `result` yields the merged JSON object or the transformed structure when `output_format` is provided. The companion `meta` object reports whether any safeguards (array caps, recursion depth limits, or response size limits) were triggered.
 
 > **Security Note:** Base64 is only an encoding step for transport safety—it does **not** encrypt or hide the response. Encrypt sensitive data before sending it to Unifio.
 

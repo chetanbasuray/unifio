@@ -48,7 +48,14 @@ curl -X POST https://unifio.vercel.app/v0/combine \
 ## Example Response
 ```json
 {
-  "result": "eyJpZCI6MSwibmFtZSI6IkFkYSBMb3ZlbGFjZSIsInNraWxscyI6WyJhbmFseXNpcyIsImxvZ2ljIl0sInByZWZlcmVuY2VzIjp7Im5ld3NsZXR0ZXIiOiJ0cnVlIiwidGltZXpvbmUiOiJVVCJ9fQ=="
+  "result": "eyJpZCI6MSwibmFtZSI6IkFkYSBMb3ZlbGFjZSIsInNraWxscyI6WyJhbmFseXNpcyIsImxvZ2ljIl0sInByZWZlcmVuY2VzIjp7Im5ld3NsZXR0ZXIiOiJ0cnVlIiwidGltZXpvbmUiOiJVVCJ9fQ==",
+  "meta": {
+    "truncated": false,
+    "truncatedFields": [],
+    "maxDepthReached": false,
+    "outputTruncated": false,
+    "timestamp": "2025-11-01T12:34:56.000Z"
+  }
 }
 ```
 
@@ -66,6 +73,15 @@ Decoded result:
   }
 }
 ```
+
+## Response Metadata
+Each response contains a `meta` object describing limit-related behavior:
+
+- **`truncated`** – `true` if any JSONPath array was capped at the configured maximum.
+- **`truncatedFields`** – Names of fields that were truncated to `MAX_ARRAY_ITEMS` elements.
+- **`maxDepthReached`** – Indicates that a branch exceeded the recursion depth safeguard and returned `null`.
+- **`outputTruncated`** – `true` when the overall JSON result would exceed the output size limit (the request returns a 413 error in that case).
+- **`timestamp`** – ISO 8601 timestamp of when Unifio processed the request.
 
 ## Supported Formats
 - JSON
