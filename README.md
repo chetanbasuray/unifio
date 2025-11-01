@@ -1,5 +1,9 @@
 # Unifio
 
+<p align="left">
+  <img src="./assets/unifio-logo.svg" alt="Unifio logo" width="320" />
+</p>
+
 _Unify any data format into one clean output._
 
 <p align="left">
