@@ -1,3 +1,13 @@
+const { sanitizeCsvCell } = require('../utils/sanitize');
+
+function isSanitizationEnabled() {
+  const flag = process.env.CSV_SANITIZE;
+  if (typeof flag !== 'string') {
+    return true;
+  }
+  return flag.toLowerCase() !== 'false';
+}
+
 function parseCsv(data) {
   if (typeof data !== 'string') {
     throw new Error('CSV input must be a string');
@@ -11,11 +21,14 @@ function parseCsv(data) {
   const headers = splitCsvLine(lines[0]);
   const rows = [];
 
+  const sanitize = isSanitizationEnabled();
+
   for (let i = 1; i < lines.length; i += 1) {
     const values = splitCsvLine(lines[i]);
     const row = {};
     headers.forEach((header, index) => {
-      row[header] = values[index] ?? '';
+      const rawValue = values[index] ?? '';
+      row[header] = sanitize ? sanitizeCsvCell(rawValue) : rawValue;
     });
     rows.push(row);
   }
