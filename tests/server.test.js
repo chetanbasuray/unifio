@@ -13,6 +13,29 @@ async function sendRequest(port, payload) {
   return { response, body };
 }
 
+describe('GET /', () => {
+  let port;
+
+  beforeEach(async () => {
+    const serverInstance = await start(0);
+    port = serverInstance.address().port;
+  });
+
+  afterEach(async () => {
+    await stop();
+  });
+
+  test('returns the Unifio landing page', async () => {
+    const response = await fetch(`http://127.0.0.1:${port}/`);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('text/html');
+    expect(body).toContain('Unifio Data Fusion API');
+    expect(body).toContain('Read the API Guide');
+  });
+});
+
 describe('POST /v0/combine', () => {
   let port;
 
@@ -229,5 +252,32 @@ describe('POST /v0/combine', () => {
     expect(body).toEqual({
       error: 'Output too large. Try narrowing your query or reducing array size.',
     });
+  });
+});
+
+describe('GET /v0/health', () => {
+  let port;
+
+  beforeEach(async () => {
+    const serverInstance = await start(0);
+    port = serverInstance.address().port;
+  });
+
+  afterEach(async () => {
+    await stop();
+  });
+
+  test('returns service status details', async () => {
+    const response = await fetch(`http://127.0.0.1:${port}/v0/health`);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      status: 'ok',
+      version: 'v0',
+    });
+    expect(typeof body.uptime).toBe('number');
+    expect(body.uptime).toBeGreaterThanOrEqual(0);
+    expect(new Date(body.timestamp).toString()).not.toBe('Invalid Date');
   });
 });

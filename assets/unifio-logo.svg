@@ -1,0 +1,14 @@
+<svg width="512" height="128" viewBox="0 0 512 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .wordmark { font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; font-size: 72px; font-weight: 600; fill: #111111; }
+  </style>
+  <g transform="translate(16,20) scale(0.9)">
+    <circle cx="40" cy="24" r="16" stroke="#111111" stroke-width="10" fill="none"/>
+    <circle cx="16" cy="72" r="16" stroke="#111111" stroke-width="10" fill="none"/>
+    <circle cx="72" cy="72" r="16" stroke="#111111" stroke-width="10" fill="none"/>
+    <line x1="27" y1="64" x2="51" y2="32" stroke="#111111" stroke-width="10" stroke-linecap="round"/>
+    <line x1="29" y1="72" x2="59" y2="72" stroke="#111111" stroke-width="10" stroke-linecap="round"/>
+    <line x1="51" y1="32" x2="67" y2="64" stroke="#111111" stroke-width="10" stroke-linecap="round"/>
+  </g>
+  <text class="wordmark" x="140" y="87">Unifio</text>
+</svg>

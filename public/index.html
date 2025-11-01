@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Unifio API Platform</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+        background: #0f172a;
+        color: #f8fafc;
+      }
+      body {
+        margin: 0;
+        display: flex;
+        min-height: 100vh;
+        align-items: center;
+        justify-content: center;
+        padding: 2.5rem 1.5rem;
+        background: radial-gradient(circle at top left, #1e293b, #020617);
+      }
+      .card {
+        max-width: 720px;
+        width: 100%;
+        background: rgba(15, 23, 42, 0.85);
+        border-radius: 20px;
+        padding: 2.5rem;
+        box-shadow: 0 32px 60px rgba(2, 6, 23, 0.45);
+        backdrop-filter: blur(12px);
+      }
+      h1 {
+        font-size: clamp(2rem, 4vw, 2.75rem);
+        margin-top: 0;
+        margin-bottom: 1rem;
+        letter-spacing: -0.02em;
+      }
+      p {
+        line-height: 1.7;
+        margin: 0 0 1.25rem 0;
+      }
+      ul {
+        margin: 0;
+        padding-left: 1.25rem;
+        line-height: 1.6;
+      }
+      .cta {
+        margin-top: 2rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #38bdf8, #818cf8);
+        color: #0f172a;
+        font-weight: 600;
+        text-decoration: none;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+      .cta:hover,
+      .cta:focus-visible {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 30px rgba(56, 189, 248, 0.35);
+      }
+      footer {
+        margin-top: 2.5rem;
+        font-size: 0.875rem;
+        color: rgba(248, 250, 252, 0.7);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <h1>Unifio Data Fusion API</h1>
+      <p>
+        Unifio merges JSON, CSV, XML, and YAML inputs into a single structured
+        document, applying output templates, sanitization, and safety guards so
+        you can build integrations without worrying about data hygiene.
+      </p>
+      <p>With the hosted API you can:</p>
+      <ul>
+        <li>Combine heterogeneous payloads into a unified JSON result.</li>
+        <li>Automatically neutralize CSV formulas and YAML exploit tags.</li>
+        <li>Enforce output shaping with JSONPath mappings and truncation limits.</li>
+        <li>Detect invalid encodings and reject binary uploads by default.</li>
+      </ul>
+      <a class="cta" href="/API.md">Read the API Guide →</a>
+      <footer>Version v0 · Built for developers who need safe data blending.</footer>
+    </main>
+  </body>
+</html>
