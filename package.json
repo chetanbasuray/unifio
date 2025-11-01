@@ -18,6 +18,8 @@
   "license": "UNLICENSED",
   "dependencies": {
     "jsonpath-plus": "^10.0.0",
+    "xml2js": "^0.6.2",
+    "yaml": "^2.3.4",
     "zod": "^3.22.4"
   },
   "devDependencies": {
