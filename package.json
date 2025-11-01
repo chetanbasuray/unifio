@@ -14,8 +14,8 @@
     "merge",
     "conversion"
   ],
-  "author": "",
-  "license": "UNLICENSED",
+  "author": "Chetan Basuray",
+  "license": "MIT",
   "dependencies": {
     "jsonpath-plus": "^10.0.0",
     "xml2js": "^0.6.2",
@@ -28,5 +28,13 @@
   "jest": {
     "testEnvironment": "node",
     "collectCoverage": false
+  },
+  "homepage": "https://unifio.vercel.app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chetanbasuray/unifio"
+  },
+  "bugs": {
+    "url": "https://github.com/chetanbasuray/unifio/issues"
   }
 }

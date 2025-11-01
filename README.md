@@ -114,4 +114,4 @@ Built with Node.js and deployed on Vercel. Forks can self-host by deploying the 
 Issues and pull requests are welcome. Please open a discussion if you plan large changes so we can coordinate the roadmap.
 
 ## License
-Released under the [MIT License](https://opensource.org/licenses/MIT).
+This project is licensed under the [MIT License](LICENSE) – see the LICENSE file for details.
