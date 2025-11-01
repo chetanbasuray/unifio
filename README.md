@@ -21,6 +21,7 @@ npm run dev
 ```bash
 npm test
 ```
+Runs the Jest suite covering happy-path merges and validation failures.
 
 ## Usage
 

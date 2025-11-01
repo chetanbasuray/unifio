@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node src/server.js",
-    "test": "node --test"
+    "test": "jest"
   },
   "keywords": [
     "data",
@@ -18,5 +18,12 @@
   "license": "UNLICENSED",
   "dependencies": {
     "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverage": false
   }
 }
