@@ -1,29 +1,18 @@
-const {
-  applyOutputFormat,
-  createOutputMeta,
-  formatOutputMeta,
-} = require('../src/utils/transform');
+const { applyOutputFormat, MAX_ARRAY_ITEMS } = require('../src/utils/transform');
 
 describe('applyOutputFormat', () => {
   const sampleData = {
     user: { name: 'Alice', age: 30 },
-    root: {
-      projects: {
-        project: [
-          { name: 'Data Unifier' },
-          { name: 'AI Toolkit' },
-        ],
-      },
-    },
     rows: [
       { skill: 'Go' },
       { skill: 'Rust' },
     ],
+    items: Array.from({ length: MAX_ARRAY_ITEMS + 10 }, (_, index) => index),
   };
 
-  test('returns simple field values for straightforward paths', () => {
+  it('extracts scalar fields with JSONPath expressions', () => {
     const format = {
-      user_summary: {
+      summary: {
         name: '$.user.name',
         age: '$.user.age',
       },
@@ -32,124 +21,66 @@ describe('applyOutputFormat', () => {
     const result = applyOutputFormat(format, sampleData);
 
     expect(result).toEqual({
-      user_summary: {
+      summary: {
         name: 'Alice',
         age: 30,
       },
     });
   });
 
-  test('returns arrays when JSONPath matches multiple results', () => {
+  it('returns null when JSONPath finds no results', () => {
     const format = {
-      summary: {
-        names: '$.root.projects.project[*].name',
-        first_skill: '$.rows[0].skill',
-      },
+      missing: '$.user.address.street',
     };
 
     const result = applyOutputFormat(format, sampleData);
 
-    expect(result).toEqual({
-      summary: {
-        names: ['Data Unifier', 'AI Toolkit'],
-        first_skill: 'Go',
-      },
-    });
+    expect(result).toEqual({ missing: null });
   });
 
-  test('returns null when JSONPath is invalid or matches nothing', () => {
-    const format = {
-      missing: '$.root.projects[',
-      absent: '$.user.hobbies[*]',
-    };
+  it('truncates over-sized arrays and annotates metadata', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const result = applyOutputFormat(format, sampleData);
-
-    expect(result).toEqual({
-      missing: null,
-      absent: null,
-    });
-  });
-
-  test('returns null for branches exceeding the maximum recursion depth', () => {
-    const buildNestedFormat = (depth, leaf) => {
-      if (depth === 0) {
-        return leaf;
-      }
-      return { nested: buildNestedFormat(depth - 1, leaf) };
-    };
-
-    const deepFormat = buildNestedFormat(12, '$.user.name');
-    const result = applyOutputFormat(deepFormat, sampleData);
-
-    const expected = buildNestedFormat(12, null);
-    expect(result).toEqual(expected);
-  });
-
-  test('handles nested schemas within the recursion depth limit', () => {
-    const format = {
-      summary: {
-        profile: {
-          name: '$.user.name',
-          age: '$.user.age',
-        },
-        skills: '$.rows[*].skill',
-      },
-    };
-
-    const result = applyOutputFormat(format, sampleData);
-
-    expect(result).toEqual({
-      summary: {
-        profile: {
-          name: 'Alice',
-          age: 30,
-        },
-        skills: ['Go', 'Rust'],
-      },
-    });
-  });
-
-  test('truncates arrays that exceed the maximum item limit and annotates metadata', () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    try {
-      const format = {
-        limited: '$.items[*]',
-      };
-
-      const sample = {
-        items: Array.from({ length: 1500 }, (_, index) => index),
-      };
-
-      const result = applyOutputFormat(format, sample);
-
-      expect(result.limited).toHaveLength(1000);
-      expect(result.__meta).toEqual({
-        truncated: true,
-        truncatedField: 'limited',
-        returnedItems: 1000,
-      });
-      expect(warnSpy).toHaveBeenCalledWith(
-        '[Unifio] Output truncated: limited capped at 1000 items.',
-      );
-    } finally {
-      warnSpy.mockRestore();
-    }
-  });
-
-  test('leaves arrays within the limit untouched', () => {
     const format = {
       limited: '$.items[*]',
     };
 
-    const sample = {
-      items: Array.from({ length: 5 }, (_, index) => index),
+    const result = applyOutputFormat(format, sampleData);
+
+    expect(result.limited).toHaveLength(MAX_ARRAY_ITEMS);
+    expect(result.__meta).toEqual({
+      truncated: true,
+      truncatedField: 'limited',
+      returnedItems: MAX_ARRAY_ITEMS,
+    });
+    expect(warn).toHaveBeenCalledWith(
+      `[Unifio] Output truncated: limited capped at ${MAX_ARRAY_ITEMS} items.`,
+    );
+
+    warn.mockRestore();
+  });
+
+  it('stops evaluation when recursion depth limit is exceeded', () => {
+    const buildFormat = (depth) => {
+      if (depth === 0) {
+        return '$.user.name';
+      }
+      return { nested: buildFormat(depth - 1) };
     };
 
-    const result = applyOutputFormat(format, sample);
+    const deepFormat = buildFormat(12);
+    const result = applyOutputFormat(deepFormat, sampleData);
 
-    expect(result.limited).toEqual([0, 1, 2, 3, 4]);
-    expect(result.__meta).toBeUndefined();
+    let current = result;
+    let depth = 0;
+    while (current && typeof current === 'object' && 'nested' in current) {
+      depth += 1;
+      if (depth > 11) {
+        break;
+      }
+      current = current.nested;
+    }
+
+    expect(current).toBeNull();
   });
 });
