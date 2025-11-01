@@ -107,3 +107,26 @@ test('returns 400 when data field is not a string', { concurrency: false }, asyn
   assert.equal(response.status, 400);
   assert.equal(body.error, 'Invalid input');
 });
+
+test('hides internal error details from clients', { concurrency: false }, async (t) => {
+  const serverInstance = await start(0);
+  const port = serverInstance.address().port;
+  t.after(async () => {
+    await stop();
+  });
+
+  const payload = {
+    inputs: [
+      { type: 'json', data: '{"user":{"name":"Mallory"}}' },
+    ],
+    output_format: {
+      summary: {
+        broken: '$.user[',
+      },
+    },
+  };
+
+  const { response, body } = await sendRequest(port, payload);
+  assert.equal(response.status, 500);
+  assert.equal(body.error, 'Internal error');
+});

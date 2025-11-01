@@ -8,10 +8,14 @@ const { applyOutputFormat } = require('./utils/transform');
 
 loadEnv();
 
-function badRequest(message) {
+function createHttpError(statusCode, message) {
   const error = new Error(message);
-  error.statusCode = 400;
+  error.statusCode = statusCode;
   return error;
+}
+
+function badRequest(message) {
+  return createHttpError(400, message);
 }
 
 function loadEnv() {
@@ -125,8 +129,7 @@ async function handleCombine(body) {
     try {
       converted = await convertInput(input);
     } catch (error) {
-      const parseError = badRequest(`Failed to parse inputs[${index}] (${input.type}): ${error.message}`);
-      throw parseError;
+      throw badRequest(`Failed to parse inputs[${index}] (${input.type}): ${error.message}`);
     }
     if (merged === undefined) {
       merged = clone(converted);
@@ -149,30 +152,43 @@ function sendJson(res, status, payload) {
   res.end(body);
 }
 
-const server = http.createServer(async (req, res) => {
+function normalizeError(error) {
+  const status = error && Number.isInteger(error.statusCode) ? error.statusCode : 500;
+  const isServerError = status >= 500;
+  const message = !isServerError && error && error.message ? error.message : 'Internal error';
+  return { status, message, isServerError };
+}
+
+function handleError(error, req, res) {
+  const { status, message, isServerError } = normalizeError(error);
+  if (isServerError) {
+    // eslint-disable-next-line no-console
+    console.error(error);
+  }
+  sendJson(res, status, { error: message });
+  logRequest(req.method, req.url, status);
+}
+
+async function routeRequest(req, res) {
   const parsedUrl = new URL(req.url, 'http://localhost');
 
   if (req.method === 'POST' && parsedUrl.pathname === ROUTE_PATH) {
-    try {
-      const body = await parseRequestBody(req);
-      const response = await handleCombine(body);
-      sendJson(res, 200, response);
-      logRequest(req.method, req.url, 200);
-    } catch (error) {
-      const message = error.message || 'Internal error';
-      const status = error.statusCode && Number.isInteger(error.statusCode) ? error.statusCode : 500;
-      if (status >= 500) {
-        // eslint-disable-next-line no-console
-        console.error(error);
-      }
-      sendJson(res, status, { error: message });
-      logRequest(req.method, req.url, status);
-    }
+    const body = await parseRequestBody(req);
+    const response = await handleCombine(body);
+    sendJson(res, 200, response);
+    logRequest(req.method, req.url, 200);
     return;
   }
 
-  sendJson(res, 404, { error: 'Not found' });
-  logRequest(req.method, req.url, 404);
+  throw createHttpError(404, 'Not found');
+}
+
+const server = http.createServer(async (req, res) => {
+  try {
+    await routeRequest(req, res);
+  } catch (error) {
+    handleError(error, req, res);
+  }
 });
 
 function start(port = PORT) {
