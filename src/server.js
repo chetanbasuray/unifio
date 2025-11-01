@@ -5,6 +5,7 @@ const { z } = require('./validation/zod');
 const { convertInput } = require('./converters');
 const { deepMerge, clone } = require('./utils/deepMerge');
 const { applyOutputFormat, MAX_OUTPUT_BYTES } = require('./utils/transform');
+const { isLikelyText } = require('./utils/validateEncoding');
 
 loadEnv();
 
@@ -47,9 +48,48 @@ function loadEnv() {
 const PORT = Number(process.env.PORT) || 3000;
 const API_VERSION = 'v0';
 const ROUTE_PATH = `/${API_VERSION}/combine`;
+const HEALTH_PATH = `/${API_VERSION}/health`;
+const LANDING_PAGE_PATH = path.join(__dirname, '..', 'public', 'index.html');
+const API_GUIDE_PATH = path.join(__dirname, '..', 'API.md');
+
+const API_GUIDE_ROUTE = '/API.md';
+
+let cachedLandingPage = null;
+let cachedApiGuide = null;
+
+function loadLandingPage() {
+  if (cachedLandingPage !== null) {
+    return cachedLandingPage;
+  }
+
+  try {
+    cachedLandingPage = fs.readFileSync(LANDING_PAGE_PATH, 'utf8');
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('[Unifio] Failed to load landing page:', error);
+    cachedLandingPage = undefined;
+  }
+  return cachedLandingPage;
+}
 
 function formatDurationNs(durationNs) {
   return Number(durationNs) / 1e6;
+}
+
+function loadApiGuide() {
+  if (cachedApiGuide !== null) {
+    return cachedApiGuide;
+  }
+
+  try {
+    cachedApiGuide = fs.readFileSync(API_GUIDE_PATH, 'utf8');
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('[Unifio] Failed to load API guide:', error);
+    cachedApiGuide = undefined;
+  }
+
+  return cachedApiGuide;
 }
 
 function logRequest(method, url, status, durationMs) {
@@ -208,6 +248,22 @@ function sendJson(res, status, payload) {
   res.end(body);
 }
 
+function sendHtml(res, status, body) {
+  res.writeHead(status, {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Content-Length': Buffer.byteLength(body),
+  });
+  res.end(body);
+}
+
+function sendMarkdown(res, status, body) {
+  res.writeHead(status, {
+    'Content-Type': 'text/markdown; charset=utf-8',
+    'Content-Length': Buffer.byteLength(body),
+  });
+  res.end(body);
+}
+
 function normalizeError(error) {
   const status = error && Number.isInteger(error.statusCode) ? error.statusCode : 500;
   const isServerError = status >= 500;
@@ -230,6 +286,34 @@ function handleError(error, req, res) {
 
 async function routeRequest(req, res) {
   const parsedUrl = new URL(req.url, 'http://localhost');
+
+  if (req.method === 'GET' && parsedUrl.pathname === '/') {
+    const landingPage = loadLandingPage();
+    if (landingPage) {
+      sendHtml(res, 200, landingPage);
+      return;
+    }
+    throw createHttpError(404, 'Not found');
+  }
+
+  if (req.method === 'GET' && parsedUrl.pathname === API_GUIDE_ROUTE) {
+    const apiGuide = loadApiGuide();
+    if (apiGuide) {
+      sendMarkdown(res, 200, apiGuide);
+      return;
+    }
+    throw createHttpError(404, 'Not found');
+  }
+
+  if (req.method === 'GET' && parsedUrl.pathname === HEALTH_PATH) {
+    sendJson(res, 200, {
+      status: 'ok',
+      version: API_VERSION,
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+    });
+    return;
+  }
 
   if (req.method === 'POST' && parsedUrl.pathname === ROUTE_PATH) {
     const body = await parseRequestBody(req);
