@@ -187,9 +187,9 @@ async function routeRequest(req, res) {
   throw createHttpError(404, 'Not found');
 }
 
-const server = http.createServer(async (req, res) => {
+async function handleHttpRequest(req, res) {
   const start = process.hrtime.bigint();
-  res.on('finish', () => {
+  res.once('finish', () => {
     const end = process.hrtime.bigint();
     const durationMs = formatDurationNs(end - start);
     const endpoint = new URL(req.url, 'http://localhost').pathname;
@@ -201,6 +201,10 @@ const server = http.createServer(async (req, res) => {
   } catch (error) {
     handleError(error, req, res);
   }
+}
+
+const server = http.createServer((req, res) => {
+  handleHttpRequest(req, res);
 });
 
 function start(port = PORT) {
@@ -230,4 +234,8 @@ if (require.main === module) {
   });
 }
 
-module.exports = { server, start, stop, handleCombine };
+module.exports = handleHttpRequest;
+module.exports.server = server;
+module.exports.start = start;
+module.exports.stop = stop;
+module.exports.handleCombine = handleCombine;
