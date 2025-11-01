@@ -48,6 +48,7 @@ function loadEnv() {
 const PORT = Number(process.env.PORT) || 3000;
 const API_VERSION = 'v0';
 const ROUTE_PATH = `/${API_VERSION}/combine`;
+const HEALTH_PATH = `/${API_VERSION}/health`;
 
 function formatDurationNs(durationNs) {
   return Number(durationNs) / 1e6;
@@ -231,6 +232,16 @@ function handleError(error, req, res) {
 
 async function routeRequest(req, res) {
   const parsedUrl = new URL(req.url, 'http://localhost');
+
+  if (req.method === 'GET' && parsedUrl.pathname === HEALTH_PATH) {
+    sendJson(res, 200, {
+      status: 'ok',
+      version: API_VERSION,
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+    });
+    return;
+  }
 
   if (req.method === 'POST' && parsedUrl.pathname === ROUTE_PATH) {
     const body = await parseRequestBody(req);
