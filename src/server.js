@@ -4,7 +4,12 @@ const http = require('http');
 const { z } = require('./validation/zod');
 const { convertInput } = require('./converters');
 const { deepMerge, clone } = require('./utils/deepMerge');
-const { applyOutputFormat, MAX_OUTPUT_BYTES } = require('./utils/transform');
+const {
+  applyOutputFormat,
+  MAX_OUTPUT_BYTES,
+  createOutputMeta,
+  formatOutputMeta,
+} = require('./utils/transform');
 const { isLikelyText } = require('./utils/validateEncoding');
 
 loadEnv();
@@ -188,11 +193,19 @@ async function handleCombine(body) {
     }
   }
 
-  const finalData = outputFormat ? applyOutputFormat(outputFormat, merged) : merged;
+  const outputMetaTracker = createOutputMeta();
+  const finalData = outputFormat
+    ? applyOutputFormat(outputFormat, merged, 0, null, null, outputMetaTracker)
+    : merged;
   const serialized = JSON.stringify(finalData);
-  if (Buffer.byteLength(serialized, 'utf8') > MAX_OUTPUT_BYTES) {
+  const responseMeta = formatOutputMeta(outputMetaTracker);
+  const serializedLength = Buffer.byteLength(serialized, 'utf8');
+  if (serializedLength > MAX_OUTPUT_BYTES) {
+    responseMeta.outputTruncated = true;
+    responseMeta.timestamp = new Date().toISOString();
     const error = new Error('Output too large. Try narrowing your query or reducing array size.');
     error.statusCode = 413;
+    error.meta = responseMeta;
     throw error;
   }
 
@@ -201,7 +214,9 @@ async function handleCombine(body) {
     // eslint-disable-next-line no-console
     console.log('[Unifio] Reminder: Base64 encoding is not encryption.');
   }
-  return { result: base64 };
+  responseMeta.outputTruncated = false;
+  responseMeta.timestamp = new Date().toISOString();
+  return { result: base64, meta: responseMeta };
 }
 
 function sendJson(res, status, payload) {
@@ -226,7 +241,11 @@ function handleError(error, req, res) {
     // eslint-disable-next-line no-console
     console.error(error);
   }
-  sendJson(res, status, { error: message });
+  const payload = { error: message };
+  if (error && error.meta) {
+    payload.meta = error.meta;
+  }
+  sendJson(res, status, payload);
 }
 
 async function routeRequest(req, res) {

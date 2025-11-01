@@ -1,4 +1,8 @@
-const { applyOutputFormat } = require('../src/utils/transform');
+const {
+  applyOutputFormat,
+  createOutputMeta,
+  formatOutputMeta,
+} = require('../src/utils/transform');
 
 describe('applyOutputFormat', () => {
   const sampleData = {
@@ -76,10 +80,13 @@ describe('applyOutputFormat', () => {
     };
 
     const deepFormat = buildNestedFormat(12, '$.user.name');
-    const result = applyOutputFormat(deepFormat, sampleData);
+    const metaTracker = createOutputMeta();
+    const result = applyOutputFormat(deepFormat, sampleData, 0, null, null, metaTracker);
 
     const expected = buildNestedFormat(12, null);
     expect(result).toEqual(expected);
+    const responseMeta = formatOutputMeta(metaTracker);
+    expect(responseMeta.maxDepthReached).toBe(true);
   });
 
   test('handles nested schemas within the recursion depth limit', () => {
@@ -118,7 +125,8 @@ describe('applyOutputFormat', () => {
         items: Array.from({ length: 1500 }, (_, index) => index),
       };
 
-      const result = applyOutputFormat(format, sample);
+      const metaTracker = createOutputMeta();
+      const result = applyOutputFormat(format, sample, 0, null, null, metaTracker);
 
       expect(result.limited).toHaveLength(1000);
       expect(result.__meta).toEqual({
@@ -129,6 +137,12 @@ describe('applyOutputFormat', () => {
       expect(warnSpy).toHaveBeenCalledWith(
         '[Unifio] Output truncated: limited capped at 1000 items.',
       );
+      const responseMeta = formatOutputMeta(metaTracker);
+      expect(responseMeta).toMatchObject({
+        truncated: true,
+        truncatedFields: ['limited'],
+        maxDepthReached: false,
+      });
     } finally {
       warnSpy.mockRestore();
     }
