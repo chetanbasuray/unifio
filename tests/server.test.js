@@ -231,3 +231,30 @@ describe('POST /v0/combine', () => {
     });
   });
 });
+
+describe('GET /v0/health', () => {
+  let port;
+
+  beforeEach(async () => {
+    const serverInstance = await start(0);
+    port = serverInstance.address().port;
+  });
+
+  afterEach(async () => {
+    await stop();
+  });
+
+  test('returns service status details', async () => {
+    const response = await fetch(`http://127.0.0.1:${port}/v0/health`);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      status: 'ok',
+      version: 'v0',
+    });
+    expect(typeof body.uptime).toBe('number');
+    expect(body.uptime).toBeGreaterThanOrEqual(0);
+    expect(new Date(body.timestamp).toString()).not.toBe('Invalid Date');
+  });
+});
