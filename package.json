@@ -1,0 +1,29 @@
+{
+  "name": "unifio",
+  "version": "1.0.0",
+  "description": "Unifio — unify any data format into one clean output.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js",
+    "test": "jest"
+  },
+  "keywords": [
+    "data",
+    "api",
+    "merge",
+    "conversion"
+  ],
+  "author": "",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverage": false
+  }
+}
