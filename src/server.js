@@ -60,29 +60,65 @@ function logRequest(method, url, status, durationMs) {
   );
 }
 
+const MAX_PAYLOAD_SIZE = 5 * 1024 * 1024;
+
 async function parseRequestBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
+    let totalSize = 0;
+    let completed = false;
+
+    const finish = (error, result) => {
+      if (completed) {
+        return;
+      }
+      completed = true;
+      if (error) {
+        reject(error);
+      } else {
+        resolve(result);
+      }
+    };
+
     req.on('data', (chunk) => {
+      if (completed) {
+        return;
+      }
+
+      totalSize += chunk.length;
+      if (totalSize > MAX_PAYLOAD_SIZE) {
+        const payloadError = new Error('Payload too large');
+        payloadError.statusCode = 413;
+        req.destroy(payloadError);
+        finish(payloadError);
+        return;
+      }
+
       chunks.push(chunk);
     });
+
     req.on('end', () => {
+      if (completed) {
+        return;
+      }
+
       const raw = Buffer.concat(chunks).toString('utf8');
       if (!raw) {
-        resolve({});
+        finish(null, {});
         return;
       }
       try {
         const parsed = JSON.parse(raw);
-        resolve(parsed);
+        finish(null, parsed);
       } catch (error) {
         const parseError = new Error('Invalid JSON body');
         parseError.statusCode = 400;
-        reject(parseError);
+        finish(parseError);
       }
     });
+
     req.on('error', (error) => {
-      reject(error);
+      finish(error);
     });
   });
 }

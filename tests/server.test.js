@@ -108,6 +108,31 @@ describe('POST /v0/combine', () => {
     expect(body).toEqual({ error: 'Invalid input' });
   });
 
+  test('accepts payloads within the size limit', async () => {
+    const smallPayload = {
+      inputs: [
+        { type: 'json', data: JSON.stringify({ message: 'hello' }) },
+      ],
+    };
+
+    const { response, body } = await sendRequest(port, smallPayload);
+
+    expect(response.status).toBe(200);
+    expect(typeof body.result).toBe('string');
+  });
+
+  test('rejects payloads larger than 5MB', async () => {
+    const largeData = 'a'.repeat(5 * 1024 * 1024 + 1);
+    const payload = {
+      inputs: [{ type: 'json', data: largeData }],
+    };
+
+    const { response, body } = await sendRequest(port, payload);
+
+    expect(response.status).toBe(413);
+    expect(body).toEqual({ error: 'Payload too large' });
+  });
+
   test('hides internal error details from clients', async () => {
     const payload = {
       inputs: [{ type: 'json', data: '{"user":{"name":"Mallory"}}' }],
