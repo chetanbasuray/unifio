@@ -48,18 +48,9 @@ curl -X POST https://unifio.vercel.app/v0/combine \
 ## Example Response
 ```json
 {
-  "result": "eyJpZCI6MSwibmFtZSI6IkFkYSBMb3ZlbGFjZSIsInNraWxscyI6WyJhbmFseXNpcyIsImxvZ2ljIl0sInByZWZlcmVuY2VzIjp7Im5ld3NsZXR0ZXIiOiJ0cnVlIiwidGltZXpvbmUiOiJVVCJ9fQ==",
-  "meta": {
-    "truncated": false,
-    "truncatedFields": [],
-    "maxDepthReached": false,
-    "outputTruncated": false,
-    "timestamp": "2025-11-01T12:34:56.000Z"
-  }
+  "result": "eyJpZCI6MSwibmFtZSI6IkFkYSBMb3ZlbGFjZSIsInNraWxscyI6WyJhbmFseXNpcyIsImxvZ2ljIl0sInByZWZlcmVuY2VzIjp7Im5ld3NsZXR0ZXIiOiJ0cnVlIiwidGltZXpvbmUiOiJVVCJ9fQ=="
 }
 ```
-
-⚠️ **Reminder:** Base64 merely encodes the JSON payload for transport—it does not encrypt or conceal the data.
 
 Decoded result:
 ```json
@@ -73,15 +64,6 @@ Decoded result:
   }
 }
 ```
-
-## Response Metadata
-Each response contains a `meta` object describing limit-related behavior:
-
-- **`truncated`** – `true` if any JSONPath array was capped at the configured maximum.
-- **`truncatedFields`** – Names of fields that were truncated to `MAX_ARRAY_ITEMS` elements.
-- **`maxDepthReached`** – Indicates that a branch exceeded the recursion depth safeguard and returned `null`.
-- **`outputTruncated`** – `true` when the overall JSON result would exceed the output size limit (the request returns a 413 error in that case).
-- **`timestamp`** – ISO 8601 timestamp of when Unifio processed the request.
 
 ## Supported Formats
 - JSON
@@ -102,10 +84,6 @@ The current stable API lives at `/v0`. Future releases will introduce `/v1`, `/v
 - JSONPath outputs enforce array and payload caps to guard against response flooding.
 - YAML parsing uses the official `yaml` library with unsafe tags disabled, and XML parsing relies on `xml2js` configured to block entity expansion.
 - CSV inputs are sanitized to neutralize formula-injection attempts when exported to spreadsheets.
-- Unifio only accepts UTF-8 textual data; binary or invalidly encoded payloads are rejected with a 400 error.
-
-### Base64 Encoding Is Not Encryption
-**Note:** Base64 is not encryption. It simply converts binary data to text form. Do not treat Base64 as a security mechanism. Anyone who intercepts a response can decode it instantly, so always encrypt sensitive information before sending it to Unifio.
 
 ## Hosting & Deployment
 Built with Node.js and deployed on Vercel. Forks can self-host by deploying the serverless function to any Node.js-compatible platform.
@@ -114,4 +92,4 @@ Built with Node.js and deployed on Vercel. Forks can self-host by deploying the 
 Issues and pull requests are welcome. Please open a discussion if you plan large changes so we can coordinate the roadmap.
 
 ## License
-This project is licensed under the [MIT License](LICENSE) – see the LICENSE file for details.
+Released under the [MIT License](https://opensource.org/licenses/MIT).

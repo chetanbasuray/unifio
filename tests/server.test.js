@@ -187,11 +187,6 @@ describe('POST /v0/combine', () => {
 
     expect(response.status).toBe(200);
     expect(typeof body.result).toBe('string');
-    expect(body.meta).toMatchObject({
-      truncated: false,
-      maxDepthReached: false,
-      outputTruncated: false,
-    });
   });
 
   test('rejects payloads larger than 5MB', async () => {
@@ -231,53 +226,8 @@ describe('POST /v0/combine', () => {
     const { response, body } = await sendRequest(port, payload);
 
     expect(response.status).toBe(413);
-    expect(body.error).toBe(
-      'Output too large. Try narrowing your query or reducing array size.',
-    );
-    expect(body.meta).toMatchObject({
-      truncated: false,
-      maxDepthReached: false,
-      outputTruncated: true,
-    });
-    expect(Array.isArray(body.meta.truncatedFields)).toBe(true);
-    expect(new Date(body.meta.timestamp).toString()).not.toBe('Invalid Date');
-  });
-
-  test('accepts UTF-8 text payloads', async () => {
-    const payload = {
-      inputs: [{ type: 'json', data: JSON.stringify({ message: 'hello world' }) }],
-    };
-
-    const { response } = await sendRequest(port, payload);
-
-    expect(response.status).toBe(200);
-  });
-
-  test('rejects inputs containing null bytes', async () => {
-    const payload = {
-      inputs: [{ type: 'json', data: 'hello\u0000world' }],
-    };
-
-    const { response, body } = await sendRequest(port, payload);
-
-    expect(response.status).toBe(400);
     expect(body).toEqual({
-      error: 'Invalid input encoding — only UTF-8 text is supported',
-    });
-  });
-
-  test('rejects inputs with excessive non-printable characters', async () => {
-    const binaryFragment = '\u0007'.repeat(20);
-    const textFragment = 'a'.repeat(180);
-    const payload = {
-      inputs: [{ type: 'json', data: binaryFragment + textFragment }],
-    };
-
-    const { response, body } = await sendRequest(port, payload);
-
-    expect(response.status).toBe(400);
-    expect(body).toEqual({
-      error: 'Invalid input encoding — only UTF-8 text is supported',
+      error: 'Output too large. Try narrowing your query or reducing array size.',
     });
   });
 });

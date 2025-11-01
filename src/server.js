@@ -4,13 +4,7 @@ const http = require('http');
 const { z } = require('./validation/zod');
 const { convertInput } = require('./converters');
 const { deepMerge, clone } = require('./utils/deepMerge');
-const {
-  applyOutputFormat,
-  MAX_OUTPUT_BYTES,
-  createOutputMeta,
-  formatOutputMeta,
-} = require('./utils/transform');
-const { isLikelyText } = require('./utils/validateEncoding');
+const { applyOutputFormat, MAX_OUTPUT_BYTES } = require('./utils/transform');
 
 loadEnv();
 
@@ -193,37 +187,16 @@ async function handleCombine(body) {
     }
   }
 
-  const outputMetaTracker = createOutputMeta();
-  const finalData = outputFormat
-    ? applyOutputFormat(outputFormat, merged, 0, null, null, outputMetaTracker)
-    : merged;
+  const finalData = outputFormat ? applyOutputFormat(outputFormat, merged) : merged;
   const serialized = JSON.stringify(finalData);
-  const responseMeta = formatOutputMeta(outputMetaTracker);
-  if (!Array.isArray(responseMeta.truncatedFields)) {
-    responseMeta.truncatedFields = [];
-  }
-  responseMeta.truncated = Boolean(responseMeta.truncated);
-  if (!responseMeta.truncated && responseMeta.truncatedFields.length > 0) {
-    responseMeta.truncated = true;
-  }
-  const serializedLength = Buffer.byteLength(serialized, 'utf8');
-  if (serializedLength > MAX_OUTPUT_BYTES) {
-    responseMeta.outputTruncated = true;
-    responseMeta.timestamp = new Date().toISOString();
+  if (Buffer.byteLength(serialized, 'utf8') > MAX_OUTPUT_BYTES) {
     const error = new Error('Output too large. Try narrowing your query or reducing array size.');
     error.statusCode = 413;
-    error.meta = responseMeta;
     throw error;
   }
 
   const base64 = Buffer.from(serialized).toString('base64');
-  if (process.env.NODE_ENV !== 'production') {
-    // eslint-disable-next-line no-console
-    console.log('[Unifio] Reminder: Base64 encoding is not encryption.');
-  }
-  responseMeta.outputTruncated = false;
-  responseMeta.timestamp = new Date().toISOString();
-  return { result: base64, meta: responseMeta };
+  return { result: base64 };
 }
 
 function sendJson(res, status, payload) {
