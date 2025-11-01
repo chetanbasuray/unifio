@@ -68,6 +68,9 @@ curl -X POST http://localhost:3000/v0/combine \
 ## Deployment
 The service listens on `process.env.PORT` or defaults to port `3000`, making it friendly for platforms such as Vercel.
 
+## Security
+- Unifio automatically neutralizes potential CSV formula injection vectors by prefixing risky cell values with a single quote.
+
 ## API Documentation
 See [API.md](./API.md) for a complete reference, including version details and error responses.
 
