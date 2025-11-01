@@ -1,4 +1,8 @@
-const { applyOutputFormat } = require('../src/utils/transform');
+const {
+  applyOutputFormat,
+  createOutputMeta,
+  formatOutputMeta,
+} = require('../src/utils/transform');
 
 describe('applyOutputFormat', () => {
   const sampleData = {

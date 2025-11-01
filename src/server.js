@@ -167,6 +167,13 @@ async function handleCombine(body) {
   let merged;
   for (let index = 0; index < inputs.length; index += 1) {
     const input = inputs[index];
+
+    if (!isLikelyText(input.data)) {
+      // eslint-disable-next-line no-console
+      console.warn('[Unifio] Rejected input with invalid encoding or binary data.');
+      throw badRequest('Invalid input encoding — only UTF-8 text is supported');
+    }
+
     let converted;
     try {
       converted = await convertInput(input);
@@ -214,7 +221,11 @@ function handleError(error, req, res) {
     // eslint-disable-next-line no-console
     console.error(error);
   }
-  sendJson(res, status, { error: message });
+  const payload = { error: message };
+  if (error && error.meta) {
+    payload.meta = error.meta;
+  }
+  sendJson(res, status, payload);
 }
 
 async function routeRequest(req, res) {

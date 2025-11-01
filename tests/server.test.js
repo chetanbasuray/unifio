@@ -37,6 +37,14 @@ describe('POST /v0/combine', () => {
 
     expect(response.status).toBe(200);
     expect(typeof body.result).toBe('string');
+    expect(body.meta).toBeDefined();
+    expect(body.meta).toMatchObject({
+      truncated: false,
+      maxDepthReached: false,
+      outputTruncated: false,
+    });
+    expect(Array.isArray(body.meta.truncatedFields)).toBe(true);
+    expect(new Date(body.meta.timestamp).toString()).not.toBe('Invalid Date');
 
     const decoded = JSON.parse(Buffer.from(body.result, 'base64').toString('utf8'));
     expect(decoded).toEqual({
@@ -77,6 +85,11 @@ describe('POST /v0/combine', () => {
     const { response, body } = await sendRequest(port, payload);
 
     expect(response.status).toBe(200);
+    expect(body.meta).toMatchObject({
+      truncated: false,
+      maxDepthReached: false,
+      outputTruncated: false,
+    });
     const decoded = JSON.parse(Buffer.from(body.result, 'base64').toString('utf8'));
     expect(decoded).toEqual({
       summary: {
@@ -84,6 +97,61 @@ describe('POST /v0/combine', () => {
         firstFriend: 'Eve',
       },
     });
+  });
+
+  test('exposes truncation metadata when array results exceed the limit', async () => {
+    const payload = {
+      inputs: [
+        {
+          type: 'json',
+          data: JSON.stringify({ items: Array.from({ length: 1505 }, (_, index) => index) }),
+        },
+      ],
+      output_format: {
+        limited: '$.items[*]',
+      },
+    };
+
+    const { response, body } = await sendRequest(port, payload);
+
+    expect(response.status).toBe(200);
+    expect(body.meta.truncated).toBe(true);
+    expect(body.meta.truncatedFields).toContain('limited');
+    expect(body.meta.outputTruncated).toBe(false);
+    expect(body.meta.maxDepthReached).toBe(false);
+    const decoded = JSON.parse(Buffer.from(body.result, 'base64').toString('utf8'));
+    expect(decoded.limited).toHaveLength(1000);
+    expect(decoded.__meta).toEqual({
+      truncated: true,
+      truncatedField: 'limited',
+      returnedItems: 1000,
+    });
+  });
+
+  test('flags recursion depth in metadata when schema exceeds the limit', async () => {
+    const buildNestedFormat = (depth, leaf) => {
+      if (depth === 0) {
+        return leaf;
+      }
+      return { nested: buildNestedFormat(depth - 1, leaf) };
+    };
+
+    const payload = {
+      inputs: [
+        { type: 'json', data: '{"user":{"name":"Dana"}}' },
+      ],
+      output_format: buildNestedFormat(12, '$.user.name'),
+    };
+
+    const { response, body } = await sendRequest(port, payload);
+
+    expect(response.status).toBe(200);
+    expect(body.meta.maxDepthReached).toBe(true);
+    expect(body.meta.truncated).toBe(false);
+    expect(body.meta.outputTruncated).toBe(false);
+    const decoded = JSON.parse(Buffer.from(body.result, 'base64').toString('utf8'));
+    const expected = buildNestedFormat(12, null);
+    expect(decoded).toEqual(expected);
   });
 
   test('returns 400 when input type is unsupported', async () => {
