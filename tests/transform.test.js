@@ -66,4 +66,43 @@ describe('applyOutputFormat', () => {
       absent: null,
     });
   });
+
+  test('returns null for branches exceeding the maximum recursion depth', () => {
+    const buildNestedFormat = (depth, leaf) => {
+      if (depth === 0) {
+        return leaf;
+      }
+      return { nested: buildNestedFormat(depth - 1, leaf) };
+    };
+
+    const deepFormat = buildNestedFormat(12, '$.user.name');
+    const result = applyOutputFormat(deepFormat, sampleData);
+
+    const expected = buildNestedFormat(12, null);
+    expect(result).toEqual(expected);
+  });
+
+  test('handles nested schemas within the recursion depth limit', () => {
+    const format = {
+      summary: {
+        profile: {
+          name: '$.user.name',
+          age: '$.user.age',
+        },
+        skills: '$.rows[*].skill',
+      },
+    };
+
+    const result = applyOutputFormat(format, sampleData);
+
+    expect(result).toEqual({
+      summary: {
+        profile: {
+          name: 'Alice',
+          age: 30,
+        },
+        skills: ['Go', 'Rust'],
+      },
+    });
+  });
 });

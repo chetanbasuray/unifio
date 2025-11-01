@@ -1,6 +1,8 @@
 const { evaluateJsonPath } = require('./jsonPath');
 const { clone } = require('./deepMerge');
 
+const MAX_DEPTH = 10;
+
 function safeEvaluateJsonPath(data, path) {
   try {
     return evaluateJsonPath(data, path);
@@ -16,7 +18,12 @@ function normalizeValue(value) {
   return value;
 }
 
-function applyOutputFormat(format, data) {
+function applyOutputFormat(format, data, depth = 0) {
+  // Guard against runaway recursion to keep evaluation predictable and safe.
+  if (depth > MAX_DEPTH) {
+    return null;
+  }
+
   if (format === null || format === undefined) {
     return format;
   }
@@ -33,13 +40,13 @@ function applyOutputFormat(format, data) {
   }
 
   if (Array.isArray(format)) {
-    return format.map((item) => applyOutputFormat(item, data));
+    return format.map((item) => applyOutputFormat(item, data, depth + 1));
   }
 
   if (typeof format === 'object') {
     const result = {};
     for (const [key, value] of Object.entries(format)) {
-      result[key] = applyOutputFormat(value, data);
+      result[key] = applyOutputFormat(value, data, depth + 1);
     }
     return result;
   }
