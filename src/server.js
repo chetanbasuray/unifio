@@ -50,8 +50,12 @@ const API_VERSION = 'v0';
 const ROUTE_PATH = `/${API_VERSION}/combine`;
 const HEALTH_PATH = `/${API_VERSION}/health`;
 const LANDING_PAGE_PATH = path.join(__dirname, '..', 'public', 'index.html');
+const API_GUIDE_PATH = path.join(__dirname, '..', 'API.md');
+
+const API_GUIDE_ROUTE = '/API.md';
 
 let cachedLandingPage = null;
+let cachedApiGuide = null;
 
 function loadLandingPage() {
   if (cachedLandingPage !== null) {
@@ -70,6 +74,22 @@ function loadLandingPage() {
 
 function formatDurationNs(durationNs) {
   return Number(durationNs) / 1e6;
+}
+
+function loadApiGuide() {
+  if (cachedApiGuide !== null) {
+    return cachedApiGuide;
+  }
+
+  try {
+    cachedApiGuide = fs.readFileSync(API_GUIDE_PATH, 'utf8');
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('[Unifio] Failed to load API guide:', error);
+    cachedApiGuide = undefined;
+  }
+
+  return cachedApiGuide;
 }
 
 function logRequest(method, url, status, durationMs) {
@@ -236,6 +256,14 @@ function sendHtml(res, status, body) {
   res.end(body);
 }
 
+function sendMarkdown(res, status, body) {
+  res.writeHead(status, {
+    'Content-Type': 'text/markdown; charset=utf-8',
+    'Content-Length': Buffer.byteLength(body),
+  });
+  res.end(body);
+}
+
 function normalizeError(error) {
   const status = error && Number.isInteger(error.statusCode) ? error.statusCode : 500;
   const isServerError = status >= 500;
@@ -263,6 +291,15 @@ async function routeRequest(req, res) {
     const landingPage = loadLandingPage();
     if (landingPage) {
       sendHtml(res, 200, landingPage);
+      return;
+    }
+    throw createHttpError(404, 'Not found');
+  }
+
+  if (req.method === 'GET' && parsedUrl.pathname === API_GUIDE_ROUTE) {
+    const apiGuide = loadApiGuide();
+    if (apiGuide) {
+      sendMarkdown(res, 200, apiGuide);
       return;
     }
     throw createHttpError(404, 'Not found');

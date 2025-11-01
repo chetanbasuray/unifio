@@ -36,6 +36,28 @@ describe('GET /', () => {
   });
 });
 
+describe('GET /API.md', () => {
+  let port;
+
+  beforeEach(async () => {
+    const serverInstance = await start(0);
+    port = serverInstance.address().port;
+  });
+
+  afterEach(async () => {
+    await stop();
+  });
+
+  test('returns the API guide markdown', async () => {
+    const response = await fetch(`http://127.0.0.1:${port}/API.md`);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('text/markdown');
+    expect(body).toContain('# Unifio API');
+  });
+});
+
 describe('POST /v0/combine', () => {
   let port;
 
