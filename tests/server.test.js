@@ -148,4 +148,18 @@ describe('POST /v0/combine', () => {
     expect(response.status).toBe(500);
     expect(body).toEqual({ error: 'Internal error' });
   });
+
+  test('returns 413 when the combined output exceeds the size limit', async () => {
+    const largeValue = 'a'.repeat(1_100_000);
+    const payload = {
+      inputs: [{ type: 'json', data: JSON.stringify({ big: largeValue }) }],
+    };
+
+    const { response, body } = await sendRequest(port, payload);
+
+    expect(response.status).toBe(413);
+    expect(body).toEqual({
+      error: 'Output too large. Try narrowing your query or reducing array size.',
+    });
+  });
 });

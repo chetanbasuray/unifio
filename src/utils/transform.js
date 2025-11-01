@@ -2,6 +2,8 @@ const { evaluateJsonPath } = require('./jsonPath');
 const { clone } = require('./deepMerge');
 
 const MAX_DEPTH = 10;
+const MAX_ARRAY_ITEMS = parseInt(process.env.MAX_ARRAY_ITEMS || '1000', 10);
+const MAX_OUTPUT_BYTES = parseInt(process.env.MAX_OUTPUT_BYTES || '1000000', 10);
 
 function safeEvaluateJsonPath(data, path) {
   try {
@@ -18,7 +20,21 @@ function normalizeValue(value) {
   return value;
 }
 
-function applyOutputFormat(format, data, depth = 0) {
+function attachTruncationMeta(target, key) {
+  if (!target || typeof target !== 'object') {
+    return;
+  }
+
+  if (!target.__meta) {
+    target.__meta = {};
+  }
+
+  target.__meta.truncated = true;
+  target.__meta.truncatedField = key != null ? String(key) : 'root';
+  target.__meta.returnedItems = MAX_ARRAY_ITEMS;
+}
+
+function applyOutputFormat(format, data, depth = 0, parent = null, parentKey = null) {
   // Guard against runaway recursion to keep evaluation predictable and safe.
   if (depth > MAX_DEPTH) {
     return null;
@@ -36,17 +52,37 @@ function applyOutputFormat(format, data, depth = 0) {
     if (results.length === 1) {
       return normalizeValue(results[0]);
     }
-    return results.map((value) => normalizeValue(value));
+    const truncated = results.length > MAX_ARRAY_ITEMS;
+    const limitedResults = truncated
+      ? results.slice(0, MAX_ARRAY_ITEMS)
+      : results;
+    const normalized = limitedResults.map((value) => normalizeValue(value));
+
+    if (truncated) {
+      const field = parentKey != null ? parentKey : 'root';
+      const metaTarget = parent && typeof parent === 'object' ? parent : normalized;
+      attachTruncationMeta(metaTarget, field);
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[Unifio] Output truncated: ${field} capped at ${MAX_ARRAY_ITEMS} items.`,
+      );
+    }
+
+    return normalized;
   }
 
   if (Array.isArray(format)) {
-    return format.map((item) => applyOutputFormat(item, data, depth + 1));
+    const result = [];
+    for (let index = 0; index < format.length; index += 1) {
+      result[index] = applyOutputFormat(format[index], data, depth + 1, result, index);
+    }
+    return result;
   }
 
   if (typeof format === 'object') {
     const result = {};
     for (const [key, value] of Object.entries(format)) {
-      result[key] = applyOutputFormat(value, data, depth + 1);
+      result[key] = applyOutputFormat(value, data, depth + 1, result, key);
     }
     return result;
   }
@@ -54,4 +90,4 @@ function applyOutputFormat(format, data, depth = 0) {
   return format;
 }
 
-module.exports = { applyOutputFormat };
+module.exports = { applyOutputFormat, MAX_ARRAY_ITEMS, MAX_OUTPUT_BYTES };

@@ -105,4 +105,47 @@ describe('applyOutputFormat', () => {
       },
     });
   });
+
+  test('truncates arrays that exceed the maximum item limit and annotates metadata', () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    try {
+      const format = {
+        limited: '$.items[*]',
+      };
+
+      const sample = {
+        items: Array.from({ length: 1500 }, (_, index) => index),
+      };
+
+      const result = applyOutputFormat(format, sample);
+
+      expect(result.limited).toHaveLength(1000);
+      expect(result.__meta).toEqual({
+        truncated: true,
+        truncatedField: 'limited',
+        returnedItems: 1000,
+      });
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[Unifio] Output truncated: limited capped at 1000 items.',
+      );
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  test('leaves arrays within the limit untouched', () => {
+    const format = {
+      limited: '$.items[*]',
+    };
+
+    const sample = {
+      items: Array.from({ length: 5 }, (_, index) => index),
+    };
+
+    const result = applyOutputFormat(format, sample);
+
+    expect(result.limited).toEqual([0, 1, 2, 3, 4]);
+    expect(result.__meta).toBeUndefined();
+  });
 });

@@ -4,7 +4,7 @@ const http = require('http');
 const { z } = require('./validation/zod');
 const { convertInput } = require('./converters');
 const { deepMerge, clone } = require('./utils/deepMerge');
-const { applyOutputFormat } = require('./utils/transform');
+const { applyOutputFormat, MAX_OUTPUT_BYTES } = require('./utils/transform');
 
 loadEnv();
 
@@ -181,7 +181,14 @@ async function handleCombine(body) {
   }
 
   const finalData = outputFormat ? applyOutputFormat(outputFormat, merged) : merged;
-  const base64 = Buffer.from(JSON.stringify(finalData)).toString('base64');
+  const serialized = JSON.stringify(finalData);
+  if (Buffer.byteLength(serialized, 'utf8') > MAX_OUTPUT_BYTES) {
+    const error = new Error('Output too large. Try narrowing your query or reducing array size.');
+    error.statusCode = 413;
+    throw error;
+  }
+
+  const base64 = Buffer.from(serialized).toString('base64');
   return { result: base64 };
 }
 

@@ -70,6 +70,7 @@ The service listens on `process.env.PORT` or defaults to port `3000`, making it 
 
 ## Security
 - Unifio automatically neutralizes potential CSV formula injection vectors by prefixing risky cell values with a single quote.
+- Unifio automatically enforces output limits to prevent accidental or malicious flooding. Arrays are capped to 1000 elements and total JSON size is limited to 1 MB by default.
 
 ## API Documentation
 See [API.md](./API.md) for a complete reference, including version details and error responses.
