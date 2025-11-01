@@ -50,6 +50,8 @@ Merges and optionally transforms supplied data snippets.
 ```
 Decoding `result` yields the merged JSON object or the transformed structure when `output_format` is provided.
 
+> **Security Note:** Base64 is only an encoding step for transport safety—it does **not** encrypt or hide the response. Encrypt sensitive data before sending it to Unifio.
+
 #### Error Responses
 | Status | Body | When |
 | ------ | ---- | ---- |

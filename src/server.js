@@ -197,6 +197,10 @@ async function handleCombine(body) {
   }
 
   const base64 = Buffer.from(serialized).toString('base64');
+  if (process.env.NODE_ENV !== 'production') {
+    // eslint-disable-next-line no-console
+    console.log('[Unifio] Reminder: Base64 encoding is not encryption.');
+  }
   return { result: base64 };
 }
 

@@ -52,6 +52,8 @@ curl -X POST https://unifio.vercel.app/v0/combine \
 }
 ```
 
+⚠️ **Reminder:** Base64 merely encodes the JSON payload for transport—it does not encrypt or conceal the data.
+
 Decoded result:
 ```json
 {
@@ -85,6 +87,9 @@ The current stable API lives at `/v0`. Future releases will introduce `/v1`, `/v
 - YAML parsing uses the official `yaml` library with unsafe tags disabled, and XML parsing relies on `xml2js` configured to block entity expansion.
 - CSV inputs are sanitized to neutralize formula-injection attempts when exported to spreadsheets.
 - Unifio only accepts UTF-8 textual data; binary or invalidly encoded payloads are rejected with a 400 error.
+
+### Base64 Encoding Is Not Encryption
+**Note:** Base64 is not encryption. It simply converts binary data to text form. Do not treat Base64 as a security mechanism. Anyone who intercepts a response can decode it instantly, so always encrypt sensitive information before sending it to Unifio.
 
 ## Hosting & Deployment
 Built with Node.js and deployed on Vercel. Forks can self-host by deploying the serverless function to any Node.js-compatible platform.
